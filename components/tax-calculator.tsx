@@ -158,7 +158,12 @@ export default function TaxCalculator() {
             <CardContent className="pt-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-semibold">รายได้</h2>
-                <Button variant="outline" size="sm" onClick={addIncomeItem}>
+                <Button
+                  variant="link"
+                  className="hover:no-underline"
+                  size="sm"
+                  onClick={addIncomeItem}
+                >
                   <Plus className="mr-2 h-4 w-4" /> เพิ่มรายการ
                 </Button>
               </div>
@@ -168,33 +173,34 @@ export default function TaxCalculator() {
                   key={item.id}
                   className="mb-3 flex flex-col gap-3 sm:flex-row"
                 >
-                  <div className="flex-grow">
+                  <div className="flex flex-grow gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="my-auto h-3 w-3"
+                      onClick={() => removeIncomeItem(item.id)}
+                    >
+                      <X className="h-3 w-3 text-red-500" />
+                    </Button>
                     <Input
-                      placeholder="รายการ"
+                      placeholder="รายได้"
                       value={item.description}
                       onChange={(e) =>
                         updateIncomeItem(item.id, "description", e.target.value)
                       }
                     />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="ml-auto flex items-center gap-2">
                     <span className="text-gray-500">฿</span>
                     <Input
                       type="number"
                       onWheel={(e) => e.currentTarget.blur()}
-                      className="w-32 text-right px-2"
+                      className="w-32 px-2 text-right"
                       value={item.amount || ""}
                       onChange={(e) =>
                         updateIncomeItem(item.id, "amount", e.target.value)
                       }
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeIncomeItem(item.id)}
-                    >
-                      <X className="h-4 w-4 text-red-500" />
-                    </Button>
                   </div>
                 </div>
               ))}
@@ -213,7 +219,12 @@ export default function TaxCalculator() {
             <CardContent className="pt-6">
               <div className="mb-4 flex items-center justify-between">
                 <h2 className="text-xl font-semibold">ค่าลดหย่อน</h2>
-                <Button variant="outline" size="sm" onClick={addExpenseItem}>
+                <Button
+                  variant="link"
+                  className="hover:no-underline"
+                  size="sm"
+                  onClick={addExpenseItem}
+                >
                   <Plus className="mr-2 h-4 w-4" /> เพิ่มรายการ
                 </Button>
               </div>
@@ -223,9 +234,17 @@ export default function TaxCalculator() {
                   key={item.id}
                   className="mb-3 flex flex-col gap-3 sm:flex-row"
                 >
-                  <div className="flex-grow">
+                  <div className="flex flex-grow gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="my-auto h-3 w-3"
+                      onClick={() => removeExpenseItem(item.id)}
+                    >
+                      <X className="h-3 w-3 text-red-500" />
+                    </Button>
                     <Input
-                      placeholder="รายการ"
+                      placeholder="ค่าลดหย่อน"
                       value={item.description}
                       onChange={(e) =>
                         updateExpenseItem(
@@ -236,24 +255,17 @@ export default function TaxCalculator() {
                       }
                     />
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="ml-auto flex items-center gap-2">
                     <span className="text-gray-500">฿</span>
                     <Input
                       type="number"
                       onWheel={(e) => e.currentTarget.blur()}
-                      className="w-32 text-right px-2"
+                      className="w-32 px-2 text-right"
                       value={item.amount || ""}
                       onChange={(e) =>
                         updateExpenseItem(item.id, "amount", e.target.value)
                       }
                     />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeExpenseItem(item.id)}
-                    >
-                      <X className="h-4 w-4 text-red-500" />
-                    </Button>
                   </div>
                 </div>
               ))}
@@ -319,12 +331,12 @@ export default function TaxCalculator() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-2 py-2 text-left">ฐานภาษี (%)</th>
-                      <th className="px-2 py-2 text-right">ฐานรายได้</th>
-                      <th className="px-2 py-2 text-right">ภาษีสูงสุด</th>
                       <th className="px-2 py-2 text-right">
-                        ภาษีที่ที่ต้องจ่าย
+                        รายได้สุทธิที่เกิน
                       </th>
+                      <th className="px-2 py-2 text-right">ฐานภาษี (%)</th>
+                      {/* <th className="px-2 py-2 text-right">ภาษีสูงสุด</th> */}
+                      <th className="px-2 py-2 text-right">ภาษีที่ต้องจ่าย</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -333,16 +345,18 @@ export default function TaxCalculator() {
                         key={index}
                         className={`border-b ${totalIncome - totalExpenses > rate.income ? "bg-blue-50" : ""}`}
                       >
-                        <td className="px-2 py-2">{rate.percent}%</td>
                         <td className="px-2 py-2 text-right">
-                          ฿{formatNumber(rate.income, 2)}
+                          ฿{formatNumber(rate.income)}
                         </td>
                         <td className="px-2 py-2 text-right">
+                          {rate.percent}%
+                        </td>
+                        {/* <td className="px-2 py-2 text-right">
                           ฿
                           {rate.maxTax >= 0
                             ? formatNumber(rate.maxTax, 2)
                             : "ไม่จำกัด"}
-                        </td>
+                        </td> */}
                         <td className="px-2 py-2 text-right font-medium">
                           {totalIncome - totalExpenses >= rate.income &&
                             formatNumber(
@@ -358,9 +372,9 @@ export default function TaxCalculator() {
                     <tr className="bg-blue-100 font-bold">
                       <td className="px-2 py-2">รวม</td>
                       <td className="px-2 py-2 text-right"></td>
-                      <td className="px-2 py-2 text-right"></td>
+                      {/* <td className="px-2 py-2 text-right"></td> */}
                       <td className="px-2 py-2 text-right text-blue-600">
-                        ฿{formatNumber(calculatedTax)}
+                        ฿{formatNumber(calculatedTax, 2)}
                       </td>
                     </tr>
                   </tbody>
