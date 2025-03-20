@@ -5,82 +5,136 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { formatNumber } from "@/utils/formatNumber";
-import { Plus, X } from "lucide-react";
+import { Plus, Trash } from "lucide-react";
 import { useMemo, useState } from "react";
 
 interface IncomeItem {
   id: string;
   description: string;
   amount: number;
+  multiplier: number;
 }
 
 interface ExpenseItem {
   id: string;
   description: string;
   amount: number;
+  multiplier: number;
   readonly?: boolean;
 }
 
-const taxRates = [
-  { percent: 0, income: 0, accumulatedTax: 0, maxTax: 0 },
-  { percent: 5, income: 150000, accumulatedTax: 0, maxTax: 7500 },
-  { percent: 10, income: 300000, accumulatedTax: 7500, maxTax: 20000 },
-  { percent: 15, income: 500000, accumulatedTax: 27500, maxTax: 37500 },
-  { percent: 20, income: 750000, accumulatedTax: 65000, maxTax: 50000 },
+interface TaxRate {
+  percent: number;
+  incomeMin: number;
+  incomeMax: number;
+  accumulatedTax: number;
+  maxTax: number;
+}
+
+const taxRates: TaxRate[] = [
+  { percent: 0, incomeMin: 0, incomeMax: 150000, accumulatedTax: 0, maxTax: 0 },
+  {
+    percent: 5,
+    incomeMin: 150000,
+    incomeMax: 300000,
+    accumulatedTax: 0,
+    maxTax: 7500,
+  },
+  {
+    percent: 10,
+    incomeMin: 300000,
+    incomeMax: 500000,
+    accumulatedTax: 7500,
+    maxTax: 20000,
+  },
+  {
+    percent: 15,
+    incomeMin: 500000,
+    incomeMax: 750000,
+    accumulatedTax: 27500,
+    maxTax: 37500,
+  },
+  {
+    percent: 20,
+    incomeMin: 750000,
+    incomeMax: 1000000,
+    accumulatedTax: 65000,
+    maxTax: 50000,
+  },
   {
     percent: 25,
-    income: 1000000,
+    incomeMin: 1000000,
+    incomeMax: 2000000,
     accumulatedTax: 115000,
     maxTax: 250000,
   },
   {
     percent: 30,
-    income: 2000000,
+    incomeMin: 2000000,
+    incomeMax: 5000000,
     accumulatedTax: 365000,
     maxTax: 900000,
   },
-  { percent: 35, income: 5000000, accumulatedTax: 1265000, maxTax: -1 },
+  {
+    percent: 35,
+    incomeMin: 5000000,
+    incomeMax: Infinity,
+    accumulatedTax: 1265000,
+    maxTax: -1,
+  },
 ];
 
 export default function TaxCalculator() {
   const [incomeItems, setIncomeItems] = useState<IncomeItem[]>([
-    { id: "1", description: "เงินเดือนรวมทั้งปี", amount: 360000 },
+    {
+      id: "1",
+      description: "เงินเดือนรวมทั้งปี",
+      amount: 30000,
+      multiplier: 12,
+    },
   ]);
   const [expenseItems, setExpenseItems] = useState<ExpenseItem[]>([
     {
       id: "1",
-      description: "ค่าใช้จ่าย 50% ไม่เกิน 100,000 บาท",
-      amount: 100000,
+      description: "ค่าลดหย่อนส่วนตัว 60,000 บาท",
+      amount: 60000,
+      multiplier: 1,
       readonly: true,
     },
     {
       id: "2",
-      description: "ค่าลดหย่อนส่วนตัว 60,000 บาท",
-      amount: 60000,
-      readonly: true,
+      description: "ค่าใช้จ่าย 50% ของเงินเดือนแต่ไม่เกิน 100,000 บาท",
+      amount: 100000,
+      multiplier: 1,
     },
   ]);
 
   const totalIncome = useMemo(() => {
-    return incomeItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    return incomeItems.reduce(
+      (sum, item) => sum + (item.amount || 0) * item.multiplier,
+      0
+    );
   }, [incomeItems]);
 
   const totalExpenses = useMemo(() => {
-    return expenseItems.reduce((sum, item) => sum + (item.amount || 0), 0);
+    return expenseItems.reduce(
+      (sum, item) => sum + (item.amount || 0) * item.multiplier,
+      0
+    );
   }, [expenseItems]);
 
   const { calculatedTax, rate } = useMemo(() => {
     const taxableIncome = totalIncome - totalExpenses;
 
     const rate = taxRates.reduce((rate, maxRate) => {
-      if (taxableIncome > maxRate.income) {
+      if (taxableIncome > maxRate.incomeMin) {
         return maxRate;
       }
       return rate;
     });
 
     const tax =
-      (taxableIncome - rate.income) * (rate.percent * 0.01) +
+      (taxableIncome - rate.incomeMin) * (rate.percent * 0.01) +
       rate.accumulatedTax;
 
     return {
@@ -92,20 +146,20 @@ export default function TaxCalculator() {
   const addIncomeItem = () => {
     setIncomeItems([
       ...incomeItems,
-      { id: Date.now().toString(), description: "", amount: 0 },
+      { id: Date.now().toString(), description: "", amount: 0, multiplier: 1 },
     ]);
   };
 
   const addExpenseItem = () => {
     setExpenseItems([
       ...expenseItems,
-      { id: Date.now().toString(), description: "", amount: 0 },
+      { id: Date.now().toString(), description: "", amount: 0, multiplier: 1 },
     ]);
   };
 
   const updateIncomeItem = (
     id: string,
-    field: "description" | "amount",
+    field: "description" | "amount" | "multiplier",
     value: string | number
   ) => {
     setIncomeItems(
@@ -119,7 +173,7 @@ export default function TaxCalculator() {
 
   const updateExpenseItem = (
     id: string,
-    field: "description" | "amount",
+    field: "description" | "amount" | "multiplier",
     value: string | number
   ) => {
     setExpenseItems(
@@ -180,7 +234,7 @@ export default function TaxCalculator() {
                       className="my-auto h-3 w-3"
                       onClick={() => removeIncomeItem(item.id)}
                     >
-                      <X className="h-3 w-3 text-red-500" />
+                      <Trash className="h-3 w-3 text-red-500" />
                     </Button>
                     <Input
                       placeholder="รายได้"
@@ -190,7 +244,7 @@ export default function TaxCalculator() {
                       }
                     />
                   </div>
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="ml-auto flex items-center gap-1">
                     <span className="text-gray-500">฿</span>
                     <Input
                       type="number"
@@ -201,6 +255,16 @@ export default function TaxCalculator() {
                         updateIncomeItem(item.id, "amount", e.target.value)
                       }
                     />
+                    x
+                    <Input
+                      type="number"
+                      onWheel={(e) => e.currentTarget.blur()}
+                      className="w-12 px-2 text-right"
+                      value={item.multiplier || ""}
+                      onChange={(e) =>
+                        updateIncomeItem(item.id, "multiplier", e.target.value)
+                      }
+                    />
                   </div>
                 </div>
               ))}
@@ -208,7 +272,7 @@ export default function TaxCalculator() {
               <div className="mt-4 flex items-center justify-between border-t pt-4">
                 <span className="font-medium">รวมรายได้</span>
                 <span className="font-bold text-blue-600">
-                  ฿{formatNumber(totalIncome, 2)}
+                  {formatNumber(totalIncome, 2)} ฿
                 </span>
               </div>
             </CardContent>
@@ -218,7 +282,9 @@ export default function TaxCalculator() {
           <Card className="mb-6">
             <CardContent className="pt-6">
               <div className="mb-4 flex items-center justify-between">
-                <h2 className="text-xl font-semibold">ค่าลดหย่อน</h2>
+                <div className="text-xl font-semibold">
+                  ค่าใช้จ่าย/ค่าลดหย่อน
+                </div>
                 <Button
                   variant="link"
                   className="hover:no-underline"
@@ -241,10 +307,10 @@ export default function TaxCalculator() {
                       className="my-auto h-3 w-3"
                       onClick={() => removeExpenseItem(item.id)}
                     >
-                      <X className="h-3 w-3 text-red-500" />
+                      <Trash className="h-3 w-3 text-red-500" />
                     </Button>
                     <Input
-                      placeholder="ค่าลดหย่อน"
+                      placeholder="ค่าใช้จ่าย/ค่าลดหย่อน"
                       value={item.description}
                       onChange={(e) =>
                         updateExpenseItem(
@@ -255,7 +321,7 @@ export default function TaxCalculator() {
                       }
                     />
                   </div>
-                  <div className="ml-auto flex items-center gap-2">
+                  <div className="ml-auto flex items-center gap-1">
                     <span className="text-gray-500">฿</span>
                     <Input
                       type="number"
@@ -266,22 +332,28 @@ export default function TaxCalculator() {
                         updateExpenseItem(item.id, "amount", e.target.value)
                       }
                     />
+                    x
+                    <Input
+                      type="number"
+                      onWheel={(e) => e.currentTarget.blur()}
+                      className="w-12 px-2 text-right"
+                      value={item.multiplier || ""}
+                      onChange={(e) =>
+                        updateExpenseItem(item.id, "multiplier", e.target.value)
+                      }
+                    />
                   </div>
                 </div>
               ))}
 
               <div className="mt-4 flex items-center justify-between border-t pt-4">
-                <span className="font-medium">รวมค่าลดหย่อน</span>
+                <span className="font-medium">รวมค่าใช้จ่าย/ค่าลดหย่อน</span>
                 <span className="font-bold text-blue-600">
-                  ฿{formatNumber(totalExpenses, 2)}
+                  {formatNumber(totalExpenses, 2)} ฿
                 </span>
               </div>
             </CardContent>
           </Card>
-
-          {/* <Button className="mb-6 w-full py-6 text-lg" onClick={calculateTax}>
-            <Calculator className="mr-2 h-5 w-5" /> คำนวณภาษี
-          </Button> */}
         </div>
 
         <div className="lg:col-span-2">
@@ -292,16 +364,30 @@ export default function TaxCalculator() {
 
               <div className="space-y-3">
                 <div className="flex justify-between">
+                  <span>รวมรายได้</span>
+                  <span className="font-semibold text-slate-500">
+                    {formatNumber(totalIncome, 2)} ฿
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
+                  <span>หักค่าใช้จ่าย/ค่าลดหย่อน</span>
+                  <span className="font-semibold text-slate-500">
+                    {formatNumber(-totalExpenses, 2)} ฿
+                  </span>
+                </div>
+
+                <div className="flex justify-between">
                   <span>รายได้สุทธิ</span>
                   <span className="font-bold">
-                    ฿{formatNumber(totalIncome - totalExpenses, 2)}
+                    {formatNumber(totalIncome - totalExpenses, 2)} ฿
                   </span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>ภาษีที่ต้องชำระ</span>
                   <span className="font-bold text-blue-600">
-                    ฿{formatNumber(calculatedTax, 2)}
+                    {formatNumber(calculatedTax, 2)} ฿
                   </span>
                 </div>
 
@@ -331,11 +417,8 @@ export default function TaxCalculator() {
                 <table className="w-full text-sm">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-2 py-2 text-right">
-                        รายได้สุทธิที่เกิน
-                      </th>
+                      <th className="px-2 py-2 text-right">รายได้สุทธิ</th>
                       <th className="px-2 py-2 text-right">ฐานภาษี (%)</th>
-                      {/* <th className="px-2 py-2 text-right">ภาษีสูงสุด</th> */}
                       <th className="px-2 py-2 text-right">ภาษีที่ต้องจ่าย</th>
                     </tr>
                   </thead>
@@ -343,22 +426,19 @@ export default function TaxCalculator() {
                     {taxRates.map((rate, index) => (
                       <tr
                         key={index}
-                        className={`border-b ${totalIncome - totalExpenses > rate.income ? "bg-blue-50" : ""}`}
+                        className={`border-b ${totalIncome - totalExpenses > rate.incomeMin ? "bg-blue-50" : ""}`}
                       >
                         <td className="px-2 py-2 text-right">
-                          ฿{formatNumber(rate.income)}
+                          {formatNumber(rate.incomeMin + 1)}
+                          {rate.incomeMax === Infinity
+                            ? " ขึ้นไป"
+                            : ` - ${formatNumber(rate.incomeMax)}`}
                         </td>
                         <td className="px-2 py-2 text-right">
                           {rate.percent}%
                         </td>
-                        {/* <td className="px-2 py-2 text-right">
-                          ฿
-                          {rate.maxTax >= 0
-                            ? formatNumber(rate.maxTax, 2)
-                            : "ไม่จำกัด"}
-                        </td> */}
                         <td className="px-2 py-2 text-right font-medium">
-                          {totalIncome - totalExpenses >= rate.income &&
+                          {totalIncome - totalExpenses >= rate.incomeMin &&
                             formatNumber(
                               Math.min(
                                 calculatedTax - rate.accumulatedTax,
@@ -372,9 +452,8 @@ export default function TaxCalculator() {
                     <tr className="bg-blue-100 font-bold">
                       <td className="px-2 py-2">รวม</td>
                       <td className="px-2 py-2 text-right"></td>
-                      {/* <td className="px-2 py-2 text-right"></td> */}
                       <td className="px-2 py-2 text-right text-blue-600">
-                        ฿{formatNumber(calculatedTax, 2)}
+                        {formatNumber(calculatedTax, 2)} ฿
                       </td>
                     </tr>
                   </tbody>
